@@ -22,7 +22,27 @@
 import sys
 import time
 import Adafruit_DHT
-
+import httplib, urllib
+import json
+deviceId = "DQ5xwZvS"
+deviceKey = "P4zadFPZTuQcY4iH"
+def post_to_mcs(payload):
+        headers = {"Content-type": "application/json", "deviceKey": deviceKey}
+        not_connected = 1
+        while (not_connected):
+                try:
+                        conn = httplib.HTTPConnection("api.mediatek.com:80")
+                        conn.connect()
+                        not_connected = 0
+                except (httplib.HTTPException, socket.error) as ex:
+                        print ("Error: %s")
+                        time.sleep(10)
+                         # sleep 10 seconds
+        conn.request("POST", "/mcs/v2/devices/" + deviceId + "/datapoints", json.dumps(payload), headers)
+        response = conn.getresponse()
+        print( response.status, response.reason, json.dumps(payload), time.strftime("%c"))
+        data = response.read()
+        conn.close()
 
 # Parse command line parameters.
 sensor_args = { '11': Adafruit_DHT.DHT11,
@@ -33,7 +53,7 @@ if len(sys.argv) == 3 and sys.argv[1] in sensor_args:
     pin = sys.argv[2]
 else:
     print('Usage: sudo ./Adafruit_DHT.py [11|22|2302] <GPIO pin number>')
-    print('Example: sudo ./Adafruit_DHT.py 2302 4 - Read from an AM2302 connected to GPIO pin #4')
+    print('Example: sudo ./Adafruit_DHT.py 2302 4 - Read from an AM2302 connected to GPIO pin 4')
     sys.exit(1)
 
 # Try to grab a sensor reading.  Use the read_retry method which will retry up
@@ -47,9 +67,16 @@ humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
 # the results will be null (because Linux can't
 # guarantee the timing of calls to read the sensor).
 # If this happens try again!
-while humidity is not None and temperature is not None:
-	humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
-	print('Temp={0:0.1f}*  Humidity={1:0.1f}%'.format(temperature, humidity))
-	time.sleep(1)
-else:
-	print('Failed to get reading. Try again!')
+while True:
+        h0, t0= Adafruit_DHT.read_retry(sensor, pin)
+        if humidity is not None and temperature is not None:
+                print('Temp={0:0.1f}*  Humidity={1:0.1f}%'.format(temperature, humidity))
+
+                payload = {"datapoints":[{"dataChnId":"Humidity","values":{"value":h0}},
+                        {"dataChnId":"Temperature","values":{"value":t0}}]}
+                post_to_mcs(payload)
+                time.sleep(10)
+
+        else:
+                print('Failed to get reading. Try again!')
+                sys.exit(1)
