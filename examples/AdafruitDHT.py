@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import sys
-
+import time
 import Adafruit_DHT
 
 
@@ -47,8 +47,9 @@ humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
 # the results will be null (because Linux can't
 # guarantee the timing of calls to read the sensor).
 # If this happens try again!
-if humidity is not None and temperature is not None:
-    print('Temp={0:0.1f}*  Humidity={1:0.1f}%'.format(temperature, humidity))
+while humidity is not None and temperature is not None:
+	humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
+	print('Temp={0:0.1f}*  Humidity={1:0.1f}%'.format(temperature, humidity))
+	time.sleep(1)
 else:
-    print('Failed to get reading. Try again!')
-    sys.exit(1)
+	print('Failed to get reading. Try again!')
